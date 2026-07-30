@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Outorgas — Filtratech</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; background:#F7F9FB; }
+body {
+  --blue: #1A6EA8;
+  --blue-dark: #124E79;
+  --blue-pale: #EAF3F9;
+  --ink: #1E2530;
+  --ink-soft: #5B6472;
+  --line: #E2E6EA;
+  --bg: #F7F9FB;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ink);
+}
+#outorgas-root { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
+
+.ot-header { display:flex; align-items:center; gap:12px; margin-bottom: 18px; flex-wrap: wrap; }
+.ot-drop { width: 36px; height: 36px; flex-shrink:0; }
+.ot-title { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; color: var(--blue-dark); }
+.ot-subtitle { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
+.ot-header-main { flex: 1; }
+.ot-actions { display:flex; gap:8px; }
+
+button.ot-btn {
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  border-radius: 8px; padding: 9px 14px; border: 1px solid transparent; transition: all .12s ease;
+}
+.ot-btn-primary { background: var(--blue); color: #fff; }
+.ot-btn-primary:hover { background: var(--blue-dark); }
+.ot-btn-ghost { background: #fff; color: var(--blue-dark); border-color: var(--line); }
+.ot-btn-ghost:hover { border-color: var(--blue); }
+.ot-btn-danger { background: #fff; color: #C0392B; border-color: #F1CFC9; }
+.ot-btn-danger:hover { background: #FDEDEB; }
+.ot-btn-sm { padding: 5px 10px; font-size: 12.5px; border-radius: 6px; }
+
+.ot-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(132px,1fr)); gap: 8px; margin-bottom: 18px; }
+.ot-card {
+  background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  cursor: pointer; transition: all .12s ease; text-align:left;
+}
+.ot-card:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(20,40,60,.08); }
+.ot-card.active { outline: 2px solid var(--blue); outline-offset: -2px; }
+.ot-card-count { font-size: 22px; font-weight: 800; line-height:1; }
+.ot-card-label { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; font-weight:600; }
+.ot-swatch { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+
+.ot-toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom: 14px; }
+.ot-search { flex:1; min-width: 200px; position:relative; }
+.ot-search input {
+  width:100%; padding: 9px 12px 9px 32px; border:1px solid var(--line); border-radius:8px;
+  font-family: inherit; font-size: 13.5px; background:#fff;
+}
+.ot-search input:focus { outline:none; border-color: var(--blue); }
+.ot-search svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:.4; }
+.ot-count-pill { font-size:12.5px; color: var(--ink-soft); white-space:nowrap; }
+
+.ot-table-wrap { background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; overflow-x:auto; }
+table.ot-table { width:100%; border-collapse: collapse; font-size: 13px; }
+.ot-table thead th {
+  background: var(--blue); color:#fff; text-align:left; font-weight:600; font-size:11.5px;
+  letter-spacing:.03em; text-transform:uppercase; padding: 10px 12px; cursor:pointer; user-select:none;
+  white-space:nowrap;
+}
+.ot-table thead th:hover { background: var(--blue-dark); }
+.ot-table thead th.ot-th-actions { cursor:default; }
+.ot-table thead th.ot-th-actions:hover { background: var(--blue); }
+.ot-table tbody td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align:middle; }
+.ot-table tbody tr:nth-child(even) { background: #FAFBFC; }
+.ot-table tbody tr:hover { background: var(--blue-pale); }
+.ot-client { font-weight:600; }
+.ot-muted { color: var(--ink-soft); }
+.ot-badge {
+  display:inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight:700;
+  letter-spacing:.01em; white-space:nowrap;
+}
+.ot-row-actions { display:flex; gap:6px; white-space:nowrap; }
+.ot-empty { padding: 40px 20px; text-align:center; color: var(--ink-soft); font-size: 13.5px; }
+.ot-sort-arrow { font-size:10px; margin-left:3px; opacity:.85; }
+
+.ot-overlay {
+  position: fixed; inset:0; background: rgba(20,30,40,.45); display:flex; align-items:center;
+  justify-content:center; z-index: 1000; padding: 20px;
+}
+.ot-modal {
+  background:#fff; border-radius: 14px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y:auto;
+  padding: 22px 24px; box-shadow: 0 20px 50px rgba(0,0,0,.25);
+}
+.ot-modal h3 { margin: 0 0 16px 0; font-size: 17px; color: var(--blue-dark); }
+.ot-field { margin-bottom: 13px; }
+.ot-field label { display:block; font-size: 12px; font-weight:700; color: var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:.03em; }
+.ot-field input[type=text], .ot-field input[type=date], .ot-field input[type=url], .ot-field select {
+  width:100%; padding: 8px 10px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:13.5px;
+}
+.ot-field input:focus, .ot-field select:focus { outline:none; border-color: var(--blue); }
+.ot-toggle-row { display:flex; gap:8px; margin-bottom: 8px; }
+.ot-toggle-row button {
+  flex:1; padding:7px; border-radius:7px; border:1px solid var(--line); background:#fff;
+  font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; color: var(--ink-soft);
+}
+.ot-toggle-row button.active { background: var(--blue); color:#fff; border-color: var(--blue); }
+.ot-modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top: 18px; }
+.ot-hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+
+.ot-status-banner {
+  font-size:12px; padding: 7px 12px; border-radius:8px; margin-bottom:14px; display:flex; align-items:center; gap:8px;
+}
+.ot-status-banner.info { background: var(--blue-pale); color: var(--blue-dark); }
+.ot-status-banner.saving { background: #FFF6E0; color: #8A6100; }
+.ot-status-banner.error { background: #FDEDEB; color: #C0392B; }
+
+.ot-setup {
+  max-width: 520px; margin: 60px auto; background:#fff; border:1px solid var(--line); border-radius:14px;
+  padding: 28px 26px; text-align:center;
+}
+.ot-setup p { color: var(--ink-soft); font-size: 13.5px; line-height:1.5; }
+.ot-setup input { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:13.5px; margin: 14px 0; }
+
+@media (max-width: 640px) {
+  .ot-table thead { display:none; }
+  table.ot-table, table.ot-table tbody, table.ot-table tr, table.ot-table td { display:block; width:100%; }
+  .ot-table tbody tr { border-top: 6px solid var(--bg); padding: 8px 0; }
+  .ot-table tbody td { border-top:none; padding: 4px 12px; }
+  .ot-table tbody td::before { content: attr(data-label); display:block; font-size:10.5px; font-weight:700; color: var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; }
+}
+</style>
+</head>
+<body>
+<div id="outorgas-root"></div>
+
+<script>
+(function(){
+
+const STATUS_META = {
+  "VENCIDA":                 { label: "Vencida",                    bg:"#FFC7CE", fg:"#9C0006" },
+  "A VENCER":                { label: "A vencer (90 dias)",         bg:"#FFEB9C", fg:"#9C6500" },
+  "VIGENTE":                 { label: "Vigente",                    bg:"#C6EFCE", fg:"#006100" },
+  "AGUARDANDO PUBLICAÇÃO":   { label: "Aguardando publicação",      bg:"#BDD7EE", fg:"#1F4E78" },
+  "DISPENSA":                { label: "Dispensa de outorga",        bg:"#E4DFEC", fg:"#60497A" },
+  "CANCELADA":               { label: "Cancelada",                  bg:"#FCD5B4", fg:"#C55A11" },
+  "TAMPONADO":               { label: "Tamponado / Desativado",     bg:"#FF0000", fg:"#FFFFFF" },
+  "NÃO TEM OUTORGA":         { label: "Não tem outorga",            bg:"#D9D9D9", fg:"#404040" },
+  "SEM VENCIMENTO DEFINIDO": { label: "Sem vencimento definido",    bg:"#F2F2F2", fg:"#808080" }
+};
+const STATUS_ORDER = ["VENCIDA","A VENCER","VIGENTE","AGUARDANDO PUBLICAÇÃO","DISPENSA","CANCELADA","TAMPONADO","NÃO TEM OUTORGA","SEM VENCIMENTO DEFINIDO"];
+
+const API_URL_KEY = "ot_api_url";
+
+let state = {
+  records: [],
+  search: "",
+  statusFilter: null,
+  sortKey: "vencimento_sort",
+  sortDir: "asc",
+  editingId: null,
+  loaded: false,
+  needsSetup: false
+};
+
+function getApiUrl(){ return localStorage.getItem(API_URL_KEY) || ""; }
+function setApiUrl(url){ localStorage.setItem(API_URL_KEY, url.trim()); }
+function clearApiUrl(){ localStorage.removeItem(API_URL_KEY); }
+
+function uid(){ return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function isIsoDate(s){ return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+
+function computeStatus(rec){
+  const pub = rec.publicacao || "";
+  const venc = rec.vencimento || "";
+  if (!pub && !venc) return "AGUARDANDO PUBLICAÇÃO";
+  if (venc) {
+    if (isIsoDate(venc)) {
+      const vDate = new Date(venc + "T00:00:00");
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diffDays = Math.round((vDate - today) / 86400000);
+      if (diffDays < 0) return "VENCIDA";
+      if (diffDays <= 90) return "A VENCER";
+      return "VIGENTE";
+    }
+    const upper = venc.toUpperCase();
+    return upper;
+  }
+  return "SEM VENCIMENTO DEFINIDO";
+}
+
+function sortValueForVencimento(rec){
+  const venc = rec.vencimento || "";
+  if (isIsoDate(venc)) return venc;
+  return "9999-99-99" + venc;
+}
+
+function fmtDate(iso){
+  if (!isIsoDate(iso)) return iso || "—";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function escapeHtml(s){
+  return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function loadData(){
+  const apiUrl = getApiUrl();
+  if (!apiUrl) { state.needsSetup = true; state.loaded = true; render(); return; }
+  state.needsSetup = false;
+  try {
+    const res = await fetch(apiUrl + (apiUrl.includes("?") ? "&" : "?") + "action=list");
+    const data = await res.json();
+    state.records = data.records || [];
+  } catch(e) {
+    console.error(e);
+    state.records = [];
+    state.loadError = true;
+  }
+  state.loaded = true;
+  render();
+}
+
+let bannerTimeout = null;
+function showBanner(kind, text, autoHideMs){
+  const el = document.getElementById("ot-banner");
+  if (!el) return;
+  el.className = "ot-status-banner " + kind;
+  el.style.display = "flex";
+  el.textContent = text;
+  if (bannerTimeout) clearTimeout(bannerTimeout);
+  if (autoHideMs) bannerTimeout = setTimeout(() => { el.style.display = "none"; }, autoHideMs);
+}
+
+async function persist(silent){
+  const apiUrl = getApiUrl();
+  if (!apiUrl) return;
+  if (!silent) showBanner("saving", "Salvando…");
+  try {
+    await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "saveAll", records: state.records })
+    });
+    if (!silent) showBanner("info", "Alterações salvas para toda a equipe.", 1800);
+  } catch(e) {
+    showBanner("error", "Não foi possível salvar agora. Verifique sua conexão.", 4000);
+    console.error(e);
+  }
+}
+
+function getFiltered(){
+  let list = state.records.map(r => ({ ...r, _status: computeStatus(r) }));
+  if (state.statusFilter) list = list.filter(r => r._status === state.statusFilter);
+  if (state.search.trim()) {
+    const q = state.search.trim().toLowerCase();
+    list = list.filter(r =>
+      (r.cliente||"").toLowerCase().includes(q) ||
+      (r.autos||"").toLowerCase().includes(q) ||
+      (r.portaria||"").toLowerCase().includes(q)
+    );
+  }
+  list.sort((a,b) => {
+    let av, bv;
+    if (state.sortKey === "vencimento_sort") { av = sortValueForVencimento(a); bv = sortValueForVencimento(b); }
+    else if (state.sortKey === "status") { av = a._status; bv = b._status; }
+    else { av = (a[state.sortKey]||"").toString().toLowerCase(); bv = (b[state.sortKey]||"").toString().toLowerCase(); }
+    if (av < bv) return state.sortDir === "asc" ? -1 : 1;
+    if (av > bv) return state.sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+  return list;
+}
+
+function counts(){
+  const c = {};
+  STATUS_ORDER.forEach(s => c[s] = 0);
+  state.records.forEach(r => { const s = computeStatus(r); c[s] = (c[s]||0) + 1; });
+  return c;
+}
+
+function setSort(key){
+  if (state.sortKey === key) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+  else { state.sortKey = key; state.sortDir = "asc"; }
+  render();
+}
+
+function toggleStatusFilter(status){
+  state.statusFilter = state.statusFilter === status ? null : status;
+  render();
+}
+
+function openAddModal(){ state.editingId = "__new__"; render(); }
+function openEditModal(id){ state.editingId = id; render(); }
+function closeModal(){ state.editingId = null; render(); }
+
+async function deleteRecord(id){
+  const rec = state.records.find(r => r.id === id);
+  if (!rec) return;
+  if (!confirm(`Excluir "${rec.cliente}" da lista?`)) return;
+  state.records = state.records.filter(r => r.id !== id);
+  render();
+  await persist();
+}
+
+async function saveRecordFromForm(form, id){
+  const cliente = form.cliente.value.trim();
+  if (!cliente) { alert("Informe o nome do cliente."); return; }
+  const vencMode = form.querySelector('input[name="vencMode"]').value;
+  let vencimento = "";
+  if (vencMode === "data") vencimento = form.vencimentoData.value || "";
+  else if (vencMode === "texto") vencimento = form.vencimentoTexto.value.trim();
+
+  const rec = {
+    cliente,
+    publicacao: form.publicacao.value || "",
+    autos: form.autos.value.trim(),
+    portaria: form.portaria.value.trim(),
+    vencimento,
+    observ: form.observ.value.trim()
+  };
+
+  if (id === "__new__") {
+    state.records.push({ id: uid(), ...rec });
+  } else {
+    const idx = state.records.findIndex(r => r.id === id);
+    if (idx >= 0) state.records[idx] = { id, ...rec };
+  }
+  state.editingId = null;
+  render();
+  await persist();
+}
+
+function exportCsv(){
+  const rows = [["Cliente","Publicação","Autos","Portaria","Vencimento","Observ.","Status"]];
+  getFiltered().forEach(r => {
+    rows.push([r.cliente, fmtDate(r.publicacao), r.autos, r.portaria, isIsoDate(r.vencimento) ? fmtDate(r.vencimento) : r.vencimento, r.observ, STATUS_META[r._status] ? STATUS_META[r._status].label : r._status]);
+  });
+  const csv = rows.map(row => row.map(v => `"${(v||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "controle_outorgas.csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function openSettings(){
+  const url = prompt("Cole aqui a URL do App da Web (Google Apps Script) publicada:", getApiUrl());
+  if (url === null) return;
+  if (!url.trim()) { clearApiUrl(); }
+  else setApiUrl(url);
+  state.loaded = false;
+  render();
+  loadData();
+}
+
+function render(){
+  const root = document.getElementById("outorgas-root");
+
+  if (state.needsSetup) {
+    root.innerHTML = `
+      <div class="ot-setup">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;">
+          <path d="M12 2C12 2 5 11.5 5 15.5C5 19.09 8.13 22 12 22C15.87 22 19 19.09 19 15.5C19 11.5 12 2 12 2Z" fill="#1A6EA8"/>
+        </svg>
+        <h3 style="margin:0 0 6px;color:#124E79;">Controle de Outorgas — Filtratech</h3>
+        <p>Para carregar os dados, cole aqui a URL do App da Web publicado no Google Apps Script (veja as instruções de configuração).</p>
+        <input type="url" id="ot-setup-input" placeholder="https://script.google.com/macros/s/.../exec">
+        <button class="ot-btn ot-btn-primary" id="ot-setup-save">Conectar</button>
+      </div>
+    `;
+    document.getElementById("ot-setup-save").addEventListener("click", () => {
+      const val = document.getElementById("ot-setup-input").value.trim();
+      if (!val) return;
+      setApiUrl(val);
+      state.needsSetup = false;
+      state.loaded = false;
+      render();
+      loadData();
+    });
+    return;
+  }
+
+  if (!state.loaded) {
+    root.innerHTML = `<div class="ot-empty">Carregando dados…</div>`;
+    return;
+  }
+
+  const c = counts();
+  const filtered = getFiltered();
+  const editing = state.editingId ? (state.editingId === "__new__" ? { id:"__new__", cliente:"",publicacao:"",autos:"",portaria:"",vencimento:"",observ:"EFICAZ" } : state.records.find(r=>r.id===state.editingId)) : null;
+
+  const cardsHtml = STATUS_ORDER.map(s => {
+    const meta = STATUS_META[s];
+    const active = state.statusFilter === s ? "active" : "";
+    return `<button class="ot-card ${active}" data-status="${escapeHtml(s)}">
+      <div class="ot-card-count" style="color:${meta.fg==='#FFFFFF' ? '#C0392B' : meta.fg}">${c[s]}</div>
+      <div class="ot-card-label"><span class="ot-swatch" style="background:${meta.bg}"></span>${meta.label}</div>
+    </button>`;
+  }).join("");
+
+  const sortArrow = (key) => state.sortKey === key ? `<span class="ot-sort-arrow">${state.sortDir === "asc" ? "▲" : "▼"}</span>` : "";
+
+  const rowsHtml = filtered.length ? filtered.map(r => {
+    const meta = STATUS_META[r._status] || { label: r._status, bg:"#eee", fg:"#555" };
+    return `<tr>
+      <td data-label="Cliente" class="ot-client">${escapeHtml(r.cliente)}</td>
+      <td data-label="Publicação">${fmtDate(r.publicacao)}</td>
+      <td data-label="Autos" class="ot-muted">${escapeHtml(r.autos)||"—"}</td>
+      <td data-label="Portaria" class="ot-muted">${escapeHtml(r.portaria)||"—"}</td>
+      <td data-label="Vencimento">${isIsoDate(r.vencimento) ? fmtDate(r.vencimento) : (escapeHtml(r.vencimento)||"—")}</td>
+      <td data-label="Observ." class="ot-muted">${escapeHtml(r.observ)||"—"}</td>
+      <td data-label="Status"><span class="ot-badge" style="background:${meta.bg};color:${meta.fg}">${escapeHtml(meta.label)}</span></td>
+      <td data-label="Ações"><div class="ot-row-actions">
+        <button class="ot-btn ot-btn-ghost ot-btn-sm" data-edit="${r.id}">Editar</button>
+        <button class="ot-btn ot-btn-danger ot-btn-sm" data-delete="${r.id}">Excluir</button>
+      </div></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="8"><div class="ot-empty">Nenhum registro encontrado com esses filtros.</div></td></tr>`;
+
+  root.innerHTML = `
+    <div class="ot-header">
+      <svg class="ot-drop" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C12 2 5 11.5 5 15.5C5 19.09 8.13 22 12 22C15.87 22 19 19.09 19 15.5C19 11.5 12 2 12 2Z" fill="#1A6EA8"/>
+        <path d="M8.5 15.5C8.5 17.5 9.8 19 12 19" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
+      </svg>
+      <div class="ot-header-main">
+        <div class="ot-title">Controle de Outorgas — Filtratech</div>
+        <div class="ot-subtitle">${state.records.length} outorgas cadastradas · aviso automático por e-mail 60 dias antes do vencimento</div>
+      </div>
+      <div class="ot-actions">
+        <button class="ot-btn ot-btn-ghost" id="ot-settings" title="Configurar conexão">⚙</button>
+        <button class="ot-btn ot-btn-ghost" id="ot-export">Exportar CSV</button>
+        <button class="ot-btn ot-btn-primary" id="ot-add">+ Nova outorga</button>
+      </div>
+    </div>
+
+    <div id="ot-banner" class="ot-status-banner ${state.loadError ? 'error' : 'info'}" style="display:${state.loadError ? 'flex' : 'none'};">${state.loadError ? 'Não foi possível carregar os dados. Verifique a URL configurada (⚙) ou sua conexão.' : ''}</div>
+
+    <div class="ot-cards">${cardsHtml}</div>
+
+    <div class="ot-toolbar">
+      <div class="ot-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="ot-search" type="text" placeholder="Buscar por cliente, autos ou portaria…" value="${escapeHtml(state.search)}"/>
+      </div>
+      ${state.statusFilter ? `<span class="ot-count-pill">Filtro: <strong>${STATUS_META[state.statusFilter].label}</strong> · <a href="#" id="ot-clear-filter" style="color:var(--blue);">limpar</a></span>` : ""}
+      <span class="ot-count-pill">${filtered.length} resultado(s)</span>
+    </div>
+
+    <div class="ot-table-wrap">
+      <table class="ot-table">
+        <thead>
+          <tr>
+            <th data-sort="cliente">Cliente${sortArrow("cliente")}</th>
+            <th data-sort="publicacao">Publicação${sortArrow("publicacao")}</th>
+            <th data-sort="autos">Autos${sortArrow("autos")}</th>
+            <th data-sort="portaria">Portaria${sortArrow("portaria")}</th>
+            <th data-sort="vencimento_sort">Vencimento${sortArrow("vencimento_sort")}</th>
+            <th data-sort="observ">Observ.${sortArrow("observ")}</th>
+            <th data-sort="status">Status${sortArrow("status")}</th>
+            <th class="ot-th-actions">Ações</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+
+    ${editing ? renderModal(editing) : ""}
+  `;
+
+  attachEvents();
+}
+
+function renderModal(rec){
+  const isNew = rec.id === "__new__";
+  const vencIsDate = isIsoDate(rec.vencimento);
+  let mode = "vazio";
+  if (vencIsDate) mode = "data";
+  else if (rec.vencimento) mode = "texto";
+
+  const textOptions = ["DISPENSA","CANCELADA","TAMPONADO","Não tem Outorga"];
+
+  return `
+  <div class="ot-overlay" id="ot-overlay">
+    <div class="ot-modal">
+      <h3>${isNew ? "Nova outorga" : "Editar outorga"}</h3>
+      <form id="ot-form">
+        <div class="ot-field">
+          <label>Cliente</label>
+          <input type="text" name="cliente" value="${escapeHtml(rec.cliente)}" autofocus>
+        </div>
+        <div class="ot-field">
+          <label>Publicação</label>
+          <input type="date" name="publicacao" value="${rec.publicacao||""}">
+        </div>
+        <div class="ot-field">
+          <label>Autos</label>
+          <input type="text" name="autos" value="${escapeHtml(rec.autos)}">
+        </div>
+        <div class="ot-field">
+          <label>Portaria</label>
+          <input type="text" name="portaria" value="${escapeHtml(rec.portaria)}">
+        </div>
+        <div class="ot-field">
+          <label>Vencimento</label>
+          <div class="ot-toggle-row">
+            <button type="button" data-mode="data" class="ot-mode-btn ${mode==='data'?'active':''}">Data</button>
+            <button type="button" data-mode="texto" class="ot-mode-btn ${mode==='texto'?'active':''}">Situação especial</button>
+            <button type="button" data-mode="vazio" class="ot-mode-btn ${mode==='vazio'?'active':''}">Aguardando publicação</button>
+          </div>
+          <input type="hidden" name="vencMode" value="${mode}">
+          <input type="date" name="vencimentoData" value="${vencIsDate?rec.vencimento:''}" style="${mode==='data'?'':'display:none'}">
+          <input type="text" name="vencimentoTexto" list="ot-venc-options" placeholder="Ex: DISPENSA, CANCELADA, TAMPONADO…" value="${mode==='texto'?escapeHtml(rec.vencimento):''}" style="${mode==='texto'?'':'display:none'}">
+          <datalist id="ot-venc-options">${textOptions.map(o=>`<option value="${o}">`).join("")}</datalist>
+          <div class="ot-hint" style="${mode==='vazio'?'':'display:none'}">Deixe assim quando ainda não há data de publicação nem de vencimento.</div>
+        </div>
+        <div class="ot-field">
+          <label>Observ.</label>
+          <select name="observ">
+            <option value="EFICAZ" ${rec.observ==='EFICAZ'?'selected':''}>EFICAZ</option>
+            <option value="OUTRO" ${rec.observ==='OUTRO'?'selected':''}>OUTRO</option>
+          </select>
+        </div>
+        <div class="ot-modal-actions">
+          <button type="button" class="ot-btn ot-btn-ghost" id="ot-cancel">Cancelar</button>
+          <button type="submit" class="ot-btn ot-btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+
+function attachEvents(){
+  const root = document.getElementById("outorgas-root");
+
+  root.querySelectorAll("[data-status]").forEach(btn => {
+    btn.addEventListener("click", () => toggleStatusFilter(btn.getAttribute("data-status")));
+  });
+
+  const clearFilter = document.getElementById("ot-clear-filter");
+  if (clearFilter) clearFilter.addEventListener("click", (e) => { e.preventDefault(); state.statusFilter = null; render(); });
+
+  const searchInput = document.getElementById("ot-search");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      state.search = e.target.value;
+      const pos = e.target.selectionStart;
+      render();
+      const again = document.getElementById("ot-search");
+      if (again) { again.focus(); again.setSelectionRange(pos,pos); }
+    });
+  }
+
+  root.querySelectorAll("[data-sort]").forEach(th => {
+    th.addEventListener("click", () => setSort(th.getAttribute("data-sort")));
+  });
+
+  const addBtn = document.getElementById("ot-add");
+  if (addBtn) addBtn.addEventListener("click", openAddModal);
+
+  const exportBtn = document.getElementById("ot-export");
+  if (exportBtn) exportBtn.addEventListener("click", exportCsv);
+
+  const settingsBtn = document.getElementById("ot-settings");
+  if (settingsBtn) settingsBtn.addEventListener("click", openSettings);
+
+  root.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => openEditModal(btn.getAttribute("data-edit")));
+  });
+  root.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", () => deleteRecord(btn.getAttribute("data-delete")));
+  });
+
+  const overlay = document.getElementById("ot-overlay");
+  if (overlay) {
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+    const cancelBtn = document.getElementById("ot-cancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+    const form = document.getElementById("ot-form");
+    const modeButtons = overlay.querySelectorAll(".ot-mode-btn");
+    modeButtons.forEach(b => b.addEventListener("click", () => {
+      modeButtons.forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      const mode = b.getAttribute("data-mode");
+      form.querySelector('[name="vencMode"]').value = mode;
+      form.querySelector('[name="vencimentoData"]').style.display = mode === "data" ? "" : "none";
+      form.querySelector('[name="vencimentoTexto"]').style.display = mode === "texto" ? "" : "none";
+      const hint = overlay.querySelector(".ot-hint");
+      if (hint) hint.style.display = mode === "vazio" ? "" : "none";
+    }));
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      saveRecordFromForm(form, state.editingId);
+    });
+  }
+}
+
+loadData();
+})();
+</script>
+</body>
+</html>
